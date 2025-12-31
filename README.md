@@ -23,5 +23,5 @@ This plugin gives kill (or TeamKill!) credits for using a map-built mortar at th
 
 # Links
 Original:
-https://dodsplugins.mtxserv.fr/viewtopic.php?f=6&t=71
-https://archive.is/De1Ko#selection-887.0-945.17
+- https://dodsplugins.mtxserv.fr/viewtopic.php?f=6&t=71
+- https://archive.is/De1Ko#selection-887.0-945.17
