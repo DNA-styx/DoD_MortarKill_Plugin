@@ -36,7 +36,34 @@ Example
 			"Loc" "2445.0 2247.0 116.0"
 ```
 ## MortarName: 
-Name of func_button used to fire mortar
+The `targetname` of `func_button` used to fire mortar you want to track.
+
+### Example
+```
+{
+"model" "*15"
+"classname" "func_button"
+"targetname" "mortar_back_btn"
+"origin" "-210.26 3241.55 49.95"
+"spawnflags" "1025"
+"unlocked_sentence" "0"
+"locked_sentence" "0"
+"unlocked_sound" "0"
+"locked_sound" "0"
+"wait" "0"
+"sounds" "0"
+"lip" "0"
+"speed" "0"
+"movedir" "0 0 0"
+"disablereceiveshadows" "0"
+"rendercolor" "255 255 255"
+"renderamt" "255"
+"rendermode" "0"
+"renderfx" "0"
+"health" "1"
+"OnPressed" "mortar_back_logic,Trigger,,0,-1"   
+}
+```
 
 ## TickMin: 
 ?
