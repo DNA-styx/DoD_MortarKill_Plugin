@@ -17,6 +17,8 @@ This plugin gives kill (or TeamKill!) credits for using a map-built mortar at th
 
 # TODO MAPS:
 - dod_dday_h
+- dod_longestday_b5
+- dickmanns_deepriver_syp_final
 - others?
 
 # Images:
@@ -25,6 +27,7 @@ This plugin gives kill (or TeamKill!) credits for using a map-built mortar at th
 
 # CONFIG SETUP
 
+Example
 ```
 			"MortarName" "mortar_back_btn"
 			"TickMin" "3"
@@ -32,13 +35,20 @@ This plugin gives kill (or TeamKill!) credits for using a map-built mortar at th
 			"Radius" "3000"
 			"Loc" "2445.0 2247.0 116.0"
 ```
-- MortarName: name of trigger used to fire mortar
-- TickMin: ?
-- TickMax: ?
-- Radius: Blast radius of exploding shell to count as confirmed kill?
-- Loc: Location of mortar shell impact, around which the Radius figure applies?
+## MortarName: 
+Name of func_button used to fire mortar
 
+## TickMin: 
+?
 
+## TickMax: 
+?
+
+## Radius:
+Blast radius of exploding shell to count as confirmed kill?
+
+## Loc:
+Location of mortar shell impact, around which the Radius figure applies
 
 # Links:
 Original:
