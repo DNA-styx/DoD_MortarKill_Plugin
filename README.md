@@ -7,6 +7,7 @@ This plugin gives kill (or TeamKill!) credits for using a map-built mortar at th
 
 # AVAILABLE MAPS:
 - dod_strand
+- dod_strand_night (only axis mortars)
 - dod_ardennes_rc1
 - dod_ardennes_rc1_dbs_b1
 - dod_helms_attack_v2
@@ -15,7 +16,6 @@ This plugin gives kill (or TeamKill!) credits for using a map-built mortar at th
 - dod_ebensee_b4
 
 # TODO MAPS:
-- dod_strand_night
 - dod_dday_h
 - others?
 
