@@ -2,23 +2,38 @@
 #include <sdktools>
 #pragma semicolon 1
 
-#define PL_VERSION "1.1-dev"
+#define PL_VERSION "1.5-dev"
 
+// ---------------------------
+// Global Variables
+// ---------------------------
+
+// Current map name
 new String:CurrentMap[64];
+
+// Path to the mortar config
 new String:MortarCfg[PLATFORM_MAX_PATH] = "cfg/sourcemod/dod_mortar.cfg";
+
+// Flag to indicate if config was successfully loaded
 new bool:cfgloaded = false;
 
-new mortar1_user;
-new mortar1_victim;
-new mortar1_calltime;
-new String:mortar1_entity[64];
-new String:mortar1_tick1[64];
-new String:mortar1_tick2[64];
-new Float:mortar1_loc[3];
-new mortar1_radius;
-new m1_tick1;
-new m1_tick2;
+// ---------------------------
+// Mortar 1
+// ---------------------------
+new mortar1_user;           // Client index of the player who triggered the mortar
+new mortar1_victim;         // Client index of the victim killed by the mortar
+new mortar1_calltime;       // Timestamp when the mortar was triggered
+new String:mortar1_entity[64]; // Entity name of the mortar
+new String:mortar1_tick1[64];  // Tick window min (from config)
+new String:mortar1_tick2[64];  // Tick window max (from config)
+new Float:mortar1_loc[3];      // Mortar explosion location
+new mortar1_radius;             // Mortar effect radius
+new m1_tick1;                   // Tick min as integer
+new m1_tick2;                   // Tick max as integer
 
+// ---------------------------
+// Mortar 2
+// ---------------------------
 new mortar2_user;
 new mortar2_victim;
 new mortar2_calltime;
@@ -30,6 +45,9 @@ new mortar2_radius;
 new m2_tick1;
 new m2_tick2;
 
+// ---------------------------
+// Mortar 3
+// ---------------------------
 new mortar3_user;
 new mortar3_victim;
 new mortar3_calltime;
@@ -41,6 +59,9 @@ new mortar3_radius;
 new m3_tick1;
 new m3_tick2;
 
+// ---------------------------
+// Mortar 4
+// ---------------------------
 new mortar4_user;
 new mortar4_victim;
 new mortar4_calltime;
@@ -52,7 +73,9 @@ new mortar4_radius;
 new m4_tick1;
 new m4_tick2;
 
-
+// ---------------------------
+// Plugin Info
+// ---------------------------
 public Plugin:myinfo = 
 {
 	name = "DoD:S MortarKill",
@@ -61,18 +84,32 @@ public Plugin:myinfo =
 	version = PL_VERSION
 };
 
+// ---------------------------
+// Plugin Start
+// ---------------------------
 public OnPluginStart()
 {
+	// Expose plugin version as a ConVar
 	CreateConVar("dod_mortarkill_version", PL_VERSION, "DoD:S MortarKill", FCVAR_DONTRECORD|FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
-	HookEntityOutput( "func_button", "OnPressed", pressed);
+
+	// Hook func_button outputs for mortars
+	HookEntityOutput("func_button", "OnPressed", pressed);
+
+	// Hook the player death event (pre-hook)
 	HookEvent("player_death", OnPlayerDeath, EventHookMode_Pre);
 }
 
+// ---------------------------
+// Map Start
+// ---------------------------
 public OnMapStart()
 {
-	MortarConfig();
+	MortarConfig(); // Load the mortar configuration for this map
 }
 
+// ---------------------------
+// Load Mortar Config
+// ---------------------------
 public bool:MortarConfig()
 {
     // Check if config file exists
@@ -94,7 +131,7 @@ public bool:MortarConfig()
         return false;
     }
 
-    // Load the file
+    // Load the KeyValues file
     if (!FileToKeyValues(hKeyValues, MortarCfg))
     {
         cfgloaded = false;
@@ -105,9 +142,14 @@ public bool:MortarConfig()
 
     // Get the current map key
     GetCurrentMap(CurrentMap, sizeof(CurrentMap));
+
     if (KvJumpToKey(hKeyValues, CurrentMap))
     {
-        // Load mortar 1
+        // ---------------------------
+        // Load each mortar's data
+        // ---------------------------
+
+        // Mortar 1
         KvGotoFirstSubKey(hKeyValues);
         KvGetString(hKeyValues, "MortarName", mortar1_entity, sizeof(mortar1_entity), "0");
         KvGetString(hKeyValues, "TickMin", mortar1_tick1, sizeof(mortar1_tick1), "0");
@@ -117,7 +159,7 @@ public bool:MortarConfig()
         m1_tick1 = StringToInt(mortar1_tick1);
         m1_tick2 = StringToInt(mortar1_tick2);
 
-        // Load mortar 2
+        // Mortar 2
         KvGotoNextKey(hKeyValues);
         KvGetString(hKeyValues, "MortarName", mortar2_entity, sizeof(mortar2_entity), "0");
         KvGetString(hKeyValues, "TickMin", mortar2_tick1, sizeof(mortar2_tick1), "0");
@@ -127,7 +169,7 @@ public bool:MortarConfig()
         m2_tick1 = StringToInt(mortar2_tick1);
         m2_tick2 = StringToInt(mortar2_tick2);
 
-        // Load mortar 3
+        // Mortar 3
         KvGotoNextKey(hKeyValues);
         KvGetString(hKeyValues, "MortarName", mortar3_entity, sizeof(mortar3_entity), "0");
         KvGetString(hKeyValues, "TickMin", mortar3_tick1, sizeof(mortar3_tick1), "0");
@@ -137,7 +179,7 @@ public bool:MortarConfig()
         m3_tick1 = StringToInt(mortar3_tick1);
         m3_tick2 = StringToInt(mortar3_tick2);
 
-        // Load mortar 4
+        // Mortar 4
         KvGotoNextKey(hKeyValues);
         KvGetString(hKeyValues, "MortarName", mortar4_entity, sizeof(mortar4_entity), "0");
         KvGetString(hKeyValues, "TickMin", mortar4_tick1, sizeof(mortar4_tick1), "0");
@@ -157,19 +199,30 @@ public bool:MortarConfig()
     return cfgloaded;
 }
 
+// ---------------------------
+// Hook for func_button presses
+// ---------------------------
 public pressed(const String:output[], caller, attacker, Float:Any)
 {
-    // Warn if config is not loaded
+    // Skip if config not loaded
     if (!cfgloaded)
     {
         LogError("[DOD:S Mortar] Config not loaded; cannot process mortar!");
         return;
     }
 
-    // Get entity name
+    // Validate attacker (humans or bots)
+    if (!ValidPlayer(attacker))
+    {
+        LogError("[DOD:S Mortar] Ignoring button press by invalid attacker");
+        return;
+    }
+
+    // Get entity name of pressed button
     decl String:entity[1024];
     GetEntPropString(caller, Prop_Data, "m_iName", entity, sizeof(entity));
 
+    // Assign mortar user and timestamp if the entity matches
     if (strcmp(entity, mortar1_entity, false) == 0)
     {
         mortar1_calltime = GetTime();
@@ -192,16 +245,20 @@ public pressed(const String:output[], caller, attacker, Float:Any)
     }
 }
 
-
+// ---------------------------
+// Player Death Hook
+// ---------------------------
 public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	new victimIndex   = GetClientOfUserId(GetEventInt(event,"userid"));
 	new attackerIndex = GetClientOfUserId(GetEventInt(event, "attacker"));
 	
+	// Only process deaths where the attacker is "world" (attackerIndex==0)
 	if (attackerIndex == 0)
 	{
 		new deathtick = GetTime();
 		
+		// Compute min/max tick windows for each mortar
 		new min1tick = m1_tick1 + mortar1_calltime; 
 		new max1tick = m1_tick2 + mortar1_calltime; 
 		new min2tick = m2_tick1 + mortar2_calltime; 
@@ -211,16 +268,19 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 		new min4tick = m4_tick1 + mortar4_calltime; 
 		new max4tick = m4_tick2 + mortar4_calltime; 
 		
+		// Ensure victim is valid
 		if (ValidPlayer(victimIndex))
 		{
 			new Float:pVector[3];
 			GetClientAbsOrigin(victimIndex, pVector);
 			
+			// Compute distance from each mortar
 			new Float:distance1 = GetVectorDistance(pVector, mortar1_loc);
 			new Float:distance2 = GetVectorDistance(pVector, mortar2_loc);
 			new Float:distance3 = GetVectorDistance(pVector, mortar3_loc);
 			new Float:distance4 = GetVectorDistance(pVector, mortar4_loc);
 		
+			// Check if death falls within mortar tick window and radius
 			if (deathtick >= min1tick && deathtick <= max1tick && distance1 <= mortar1_radius && ValidPlayer(mortar1_user))
 			{
 				mortar1_victim = victimIndex;
@@ -250,20 +310,25 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 	return Plugin_Continue;
 }
 
+// ---------------------------
+// Mortar Kill Functions
+// ---------------------------
 public Action:Mortar1Kill(attacker)
 {
+	// Skip if attacker is invalid
+	if (!ValidPlayer(attacker))
+		return;
+
 	new Handle:event = CreateEvent("player_death");
 	if (event == INVALID_HANDLE)
-	{
 		return;
-	}
+
 	SetEventInt(event, "userid", GetClientUserId(mortar1_victim));
 	SetEventInt(event, "attacker", GetClientUserId(attacker));
 	SetEventString(event, "weapon", "dod_bomb_target");
-	
-	
 	FireEvent(event);
 	
+	// Adjust frags safely
 	new diff = 0;
 	if (GetClientTeam(mortar1_victim) == GetClientTeam(attacker))
 		diff = -1;
@@ -276,72 +341,70 @@ public Action:Mortar1Kill(attacker)
 
 public Action:Mortar2Kill(attacker)
 {
+	if (!ValidPlayer(attacker)) return;
+
 	new Handle:event = CreateEvent("player_death");
-	if (event == INVALID_HANDLE)
-	{
-		return;
-	}
+	if (event == INVALID_HANDLE) return;
+
 	SetEventInt(event, "userid", GetClientUserId(mortar2_victim));
 	SetEventInt(event, "attacker", GetClientUserId(attacker));
 	SetEventString(event, "weapon", "dod_bomb_target");
 	FireEvent(event);
-	
+
 	new diff = 0;
-	if (GetClientTeam(mortar2_victim) == GetClientTeam(attacker))
-		diff = -1;
-	else
-		diff = 1;
-		
+	if (GetClientTeam(mortar2_victim) == GetClientTeam(attacker)) diff = -1;
+	else diff = 1;
+
 	new fkills = GetEntProp(attacker, Prop_Data, "m_iFrags") + diff;
 	SetEntProp(attacker, Prop_Data, "m_iFrags", fkills);	
 }
 
 public Action:Mortar3Kill(attacker)
 {
+	if (!ValidPlayer(attacker)) return;
+
 	new Handle:event = CreateEvent("player_death");
-	if (event == INVALID_HANDLE)
-	{
-		return;
-	}
+	if (event == INVALID_HANDLE) return;
+
 	SetEventInt(event, "userid", GetClientUserId(mortar3_victim));
 	SetEventInt(event, "attacker", GetClientUserId(attacker));
 	SetEventString(event, "weapon", "dod_bomb_target");
 	FireEvent(event);
-	
+
 	new diff = 0;
-	if (GetClientTeam(mortar3_victim) == GetClientTeam(attacker))
-		diff = -1;
-	else
-		diff = 1;
-	
+	if (GetClientTeam(mortar3_victim) == GetClientTeam(attacker)) diff = -1;
+	else diff = 1;
+
 	new fkills = GetEntProp(attacker, Prop_Data, "m_iFrags") + diff;
 	SetEntProp(attacker, Prop_Data, "m_iFrags", fkills);	
 }
 
 public Action:Mortar4Kill(attacker)
 {
+	if (!ValidPlayer(attacker)) return;
+
 	new Handle:event = CreateEvent("player_death");
-	if (event == INVALID_HANDLE)
-	{
-		return;
-	}
+	if (event == INVALID_HANDLE) return;
+
 	SetEventInt(event, "userid", GetClientUserId(mortar4_victim));
 	SetEventInt(event, "attacker", GetClientUserId(attacker));
 	SetEventString(event, "weapon", "dod_bomb_target");
 	FireEvent(event);
-	
+
 	new diff = 0;
-	if (GetClientTeam(mortar4_victim) == GetClientTeam(attacker))
-		diff = -1;
-	else
-		diff = 1;
-	
+	if (GetClientTeam(mortar4_victim) == GetClientTeam(attacker)) diff = -1;
+	else diff = 1;
+
 	new fkills = GetEntProp(attacker, Prop_Data, "m_iFrags") + diff;
 	SetEntProp(attacker, Prop_Data, "m_iFrags", fkills);	
 }
 
-stock bool:ValidPlayer(client,bool:check_alive=false){
-	if(client>0 && client<=MaxClients && IsClientConnected(client) && IsClientInGame(client))
+// ---------------------------
+// Helper: Validate Player
+// ---------------------------
+stock bool:ValidPlayer(client,bool:check_alive=false)
+{
+	if(client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client))
 	{
 		if(check_alive && !IsPlayerAlive(client))
 		{
