@@ -2,7 +2,7 @@
 #include <sdktools>
 #pragma semicolon 1
 
-#define PL_VERSION "1.0"
+#define PL_VERSION "1.1-dev"
 
 new String:CurrentMap[64];
 new String:MortarCfg[PLATFORM_MAX_PATH] = "cfg/sourcemod/dod_mortar.cfg";
@@ -56,9 +56,9 @@ new m4_tick2;
 public Plugin:myinfo = 
 {
 	name = "DoD:S MortarKill",
-	author = "BenSib",
-	description = "gives up to 4 map-builded mortars kill credits",
-	version = "1.0"
+	author = "BenSib, DNA.styx",
+	description = "Gives kill credits for up to 4 map-builded mortars (dev version)",
+	version = PL_VERSION
 };
 
 public OnPluginStart()
@@ -73,96 +73,125 @@ public OnMapStart()
 	MortarConfig();
 }
 
-public MortarConfig()
+public bool:MortarConfig()
 {
-	if(!FileExists(MortarCfg, true))
-	{
-		cfgloaded = false;
-		return false;
-	}
-	else
-		cfgloaded = true;
-		
-	GetCurrentMap(CurrentMap, sizeof(CurrentMap));
-	new Handle:hKeyValues = CreateKeyValues("MortarKills");
-	FileToKeyValues(hKeyValues, MortarCfg);
+    // Check if config file exists
+    if (!FileExists(MortarCfg, true))
+    {
+        cfgloaded = false;
+        LogError("[DOD:S Mortar] Couldn't find dod_mortar.cfg! Place it in dod/cfg/sourcemod");
+        return false;
+    }
 
-	if(KvJumpToKey(hKeyValues, CurrentMap))
-	{
-		KvGotoFirstSubKey(hKeyValues);
-		KvGetString(hKeyValues, "MortarName", mortar1_entity, sizeof(mortar1_entity), "0");
-		KvGetString(hKeyValues, "TickMin", mortar1_tick1, sizeof(mortar1_tick1), "0");
-		KvGetString(hKeyValues, "TickMax", mortar1_tick2, sizeof(mortar1_tick2), "0");
-		mortar1_radius = KvGetNum(hKeyValues, "Radius");
-		KvGetVector(hKeyValues, "Loc", mortar1_loc);
-		m1_tick1 = StringToInt(mortar1_tick1);
-		m1_tick2 = StringToInt(mortar1_tick2);
-	
-		KvGotoNextKey(hKeyValues);
-		KvGetString(hKeyValues, "MortarName", mortar2_entity, sizeof(mortar2_entity), "0");
-		KvGetString(hKeyValues, "TickMin", mortar2_tick1, sizeof(mortar2_tick1), "0");
-		KvGetString(hKeyValues, "TickMax", mortar2_tick2, sizeof(mortar2_tick2), "0");
-		mortar2_radius = KvGetNum(hKeyValues, "Radius");
-		KvGetVector(hKeyValues, "Loc", mortar2_loc);
-		m2_tick1 = StringToInt(mortar2_tick1);
-		m2_tick2 = StringToInt(mortar2_tick2);
-		
-		KvGotoNextKey(hKeyValues);
-		KvGetString(hKeyValues, "MortarName", mortar3_entity, sizeof(mortar3_entity), "0");
-		KvGetString(hKeyValues, "TickMin", mortar3_tick1, sizeof(mortar3_tick1), "0");
-		KvGetString(hKeyValues, "TickMax", mortar3_tick2, sizeof(mortar3_tick2), "0");
-		mortar3_radius = KvGetNum(hKeyValues, "Radius");
-		KvGetVector(hKeyValues, "Loc", mortar3_loc);
-		m3_tick1 = StringToInt(mortar3_tick1);
-		m3_tick2 = StringToInt(mortar3_tick2);
-		
-		KvGotoNextKey(hKeyValues);
-		KvGetString(hKeyValues, "MortarName", mortar4_entity, sizeof(mortar4_entity), "0");
-		KvGetString(hKeyValues, "TickMin", mortar4_tick1, sizeof(mortar4_tick1), "0");
-		KvGetString(hKeyValues, "TickMax", mortar4_tick2, sizeof(mortar4_tick2), "0");
-		mortar4_radius = KvGetNum(hKeyValues, "Radius");
-		KvGetVector(hKeyValues, "Loc", mortar4_loc);
-		m4_tick1 = StringToInt(mortar4_tick1);
-		m4_tick2 = StringToInt(mortar4_tick2);
-		CloseHandle(hKeyValues);
-	}
-	else
-	{
-		CloseHandle(hKeyValues);
-		return false;
-	}	
-	return true;
+    cfgloaded = true;
+
+    // Create KeyValues handle
+    new Handle:hKeyValues = CreateKeyValues("MortarKills");
+    if (hKeyValues == INVALID_HANDLE)
+    {
+        cfgloaded = false;
+        LogError("[DOD:S Mortar] Failed to create KeyValues handle!");
+        return false;
+    }
+
+    // Load the file
+    if (!FileToKeyValues(hKeyValues, MortarCfg))
+    {
+        cfgloaded = false;
+        LogError("[DOD:S Mortar] Failed to parse dod_mortar.cfg!");
+        CloseHandle(hKeyValues);
+        return false;
+    }
+
+    // Get the current map key
+    GetCurrentMap(CurrentMap, sizeof(CurrentMap));
+    if (KvJumpToKey(hKeyValues, CurrentMap))
+    {
+        // Load mortar 1
+        KvGotoFirstSubKey(hKeyValues);
+        KvGetString(hKeyValues, "MortarName", mortar1_entity, sizeof(mortar1_entity), "0");
+        KvGetString(hKeyValues, "TickMin", mortar1_tick1, sizeof(mortar1_tick1), "0");
+        KvGetString(hKeyValues, "TickMax", mortar1_tick2, sizeof(mortar1_tick2), "0");
+        mortar1_radius = KvGetNum(hKeyValues, "Radius");
+        KvGetVector(hKeyValues, "Loc", mortar1_loc);
+        m1_tick1 = StringToInt(mortar1_tick1);
+        m1_tick2 = StringToInt(mortar1_tick2);
+
+        // Load mortar 2
+        KvGotoNextKey(hKeyValues);
+        KvGetString(hKeyValues, "MortarName", mortar2_entity, sizeof(mortar2_entity), "0");
+        KvGetString(hKeyValues, "TickMin", mortar2_tick1, sizeof(mortar2_tick1), "0");
+        KvGetString(hKeyValues, "TickMax", mortar2_tick2, sizeof(mortar2_tick2), "0");
+        mortar2_radius = KvGetNum(hKeyValues, "Radius");
+        KvGetVector(hKeyValues, "Loc", mortar2_loc);
+        m2_tick1 = StringToInt(mortar2_tick1);
+        m2_tick2 = StringToInt(mortar2_tick2);
+
+        // Load mortar 3
+        KvGotoNextKey(hKeyValues);
+        KvGetString(hKeyValues, "MortarName", mortar3_entity, sizeof(mortar3_entity), "0");
+        KvGetString(hKeyValues, "TickMin", mortar3_tick1, sizeof(mortar3_tick1), "0");
+        KvGetString(hKeyValues, "TickMax", mortar3_tick2, sizeof(mortar3_tick2), "0");
+        mortar3_radius = KvGetNum(hKeyValues, "Radius");
+        KvGetVector(hKeyValues, "Loc", mortar3_loc);
+        m3_tick1 = StringToInt(mortar3_tick1);
+        m3_tick2 = StringToInt(mortar3_tick2);
+
+        // Load mortar 4
+        KvGotoNextKey(hKeyValues);
+        KvGetString(hKeyValues, "MortarName", mortar4_entity, sizeof(mortar4_entity), "0");
+        KvGetString(hKeyValues, "TickMin", mortar4_tick1, sizeof(mortar4_tick1), "0");
+        KvGetString(hKeyValues, "TickMax", mortar4_tick2, sizeof(mortar4_tick2), "0");
+        mortar4_radius = KvGetNum(hKeyValues, "Radius");
+        KvGetVector(hKeyValues, "Loc", mortar4_loc);
+        m4_tick1 = StringToInt(mortar4_tick1);
+        m4_tick2 = StringToInt(mortar4_tick2);
+    }
+    else
+    {
+        LogError("[DOD:S Mortar] No entry for map \"%s\" in dod_mortar.cfg", CurrentMap);
+        cfgloaded = false;
+    }
+
+    CloseHandle(hKeyValues);
+    return cfgloaded;
 }
 
 public pressed(const String:output[], caller, attacker, Float:Any)
 {
-	if (!cfgloaded)
-		LogError("[DOD:S Mortar] Couldn't find dod_mortar.cfg - place it in dod/cfg/sourcemod!");
+    // Warn if config is not loaded
+    if (!cfgloaded)
+    {
+        LogError("[DOD:S Mortar] Config not loaded; cannot process mortar!");
+        return;
+    }
 
-	decl String:entity[1024];
-	GetEntPropString(caller, Prop_Data, "m_iName", entity, sizeof(entity));
-	
-	if (strcmp(entity, mortar1_entity, false) == 0)
-	{
-		mortar1_calltime = GetTime();
-		mortar1_user = attacker;
-	}
-	else if (strcmp(entity, mortar2_entity, false) == 0)
-	{
-		mortar2_calltime = GetTime();
-		mortar2_user = attacker;
-	}
-	else if (strcmp(entity, mortar3_entity, false) == 0)
-	{
-		mortar3_calltime = GetTime();
-		mortar3_user = attacker;
-	}
-	else if (strcmp(entity, mortar4_entity, false) == 0)
-	{
-		mortar4_calltime = GetTime();
-		mortar4_user = attacker;
-	}
+    // Get entity name
+    decl String:entity[1024];
+    GetEntPropString(caller, Prop_Data, "m_iName", entity, sizeof(entity));
+
+    if (strcmp(entity, mortar1_entity, false) == 0)
+    {
+        mortar1_calltime = GetTime();
+        mortar1_user = attacker;
+    }
+    else if (strcmp(entity, mortar2_entity, false) == 0)
+    {
+        mortar2_calltime = GetTime();
+        mortar2_user = attacker;
+    }
+    else if (strcmp(entity, mortar3_entity, false) == 0)
+    {
+        mortar3_calltime = GetTime();
+        mortar3_user = attacker;
+    }
+    else if (strcmp(entity, mortar4_entity, false) == 0)
+    {
+        mortar4_calltime = GetTime();
+        mortar4_user = attacker;
+    }
 }
+
 
 public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {
