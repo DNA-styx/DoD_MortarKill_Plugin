@@ -5,7 +5,7 @@
 #define PL_VERSION "1.0"
 
 new String:CurrentMap[64];
-new String:MortarCfg[] = { "cfg/sourcemod/dod_mortar.cfg" };
+new String:MortarCfg[PLATFORM_MAX_PATH] = "cfg/sourcemod/dod_mortar.cfg";
 new bool:cfgloaded = false;
 
 new mortar1_user;
