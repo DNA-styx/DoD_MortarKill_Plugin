@@ -96,7 +96,7 @@ public MortarConfig()
 		mortar1_radius = KvGetNum(KeyValues, "Radius");
 		KvGetVector(KeyValues, "Loc", mortar1_loc);
 		m1_tick1 = StringToInt(mortar1_tick1);
-		m1_tick2 = StringToInt(mortar1_tick1);
+		m1_tick2 = StringToInt(mortar1_tick2);
 	
 		KvGotoNextKey(KeyValues);
 		KvGetString(KeyValues, "MortarName", mortar2_entity, sizeof(mortar2_entity), "0");
