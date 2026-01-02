@@ -81,3 +81,6 @@ Location of mortar shell impact, around which the Radius figure applies
 Original:
 - https://dodsplugins.mtxserv.fr/viewtopic.php?f=6&t=71
 - https://archive.is/De1Ko#selection-887.0-945.17
+
+# Issues
+- v1.0 - possible crash with RCBot https://crash.limetech.org/dmlerxwalgzf https://crash.limetech.org/r3dx5ylj4qpp
