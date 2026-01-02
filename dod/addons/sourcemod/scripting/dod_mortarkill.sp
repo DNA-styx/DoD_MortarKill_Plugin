@@ -84,51 +84,51 @@ public MortarConfig()
 		cfgloaded = true;
 		
 	GetCurrentMap(CurrentMap, sizeof(CurrentMap));
-	new Handle:KeyValues = CreateKeyValues("MortarKills");
-	FileToKeyValues(KeyValues, MortarCfg);
+	new Handle:hKeyValues = CreateKeyValues("MortarKills");
+	FileToKeyValues(hKeyValues, MortarCfg);
 
-	if(KvJumpToKey(KeyValues, CurrentMap))
+	if(KvJumpToKey(hKeyValues, CurrentMap))
 	{
-		KvGotoFirstSubKey(KeyValues);
-		KvGetString(KeyValues, "MortarName", mortar1_entity, sizeof(mortar1_entity), "0");
-		KvGetString(KeyValues, "TickMin", mortar1_tick1, sizeof(mortar1_tick1), "0");
-		KvGetString(KeyValues, "TickMax", mortar1_tick2, sizeof(mortar1_tick2), "0");
-		mortar1_radius = KvGetNum(KeyValues, "Radius");
-		KvGetVector(KeyValues, "Loc", mortar1_loc);
+		KvGotoFirstSubKey(hKeyValues);
+		KvGetString(hKeyValues, "MortarName", mortar1_entity, sizeof(mortar1_entity), "0");
+		KvGetString(hKeyValues, "TickMin", mortar1_tick1, sizeof(mortar1_tick1), "0");
+		KvGetString(hKeyValues, "TickMax", mortar1_tick2, sizeof(mortar1_tick2), "0");
+		mortar1_radius = KvGetNum(hKeyValues, "Radius");
+		KvGetVector(hKeyValues, "Loc", mortar1_loc);
 		m1_tick1 = StringToInt(mortar1_tick1);
 		m1_tick2 = StringToInt(mortar1_tick2);
 	
-		KvGotoNextKey(KeyValues);
-		KvGetString(KeyValues, "MortarName", mortar2_entity, sizeof(mortar2_entity), "0");
-		KvGetString(KeyValues, "TickMin", mortar2_tick1, sizeof(mortar2_tick1), "0");
-		KvGetString(KeyValues, "TickMax", mortar2_tick2, sizeof(mortar2_tick2), "0");
-		mortar2_radius = KvGetNum(KeyValues, "Radius");
-		KvGetVector(KeyValues, "Loc", mortar2_loc);
+		KvGotoNextKey(hKeyValues);
+		KvGetString(hKeyValues, "MortarName", mortar2_entity, sizeof(mortar2_entity), "0");
+		KvGetString(hKeyValues, "TickMin", mortar2_tick1, sizeof(mortar2_tick1), "0");
+		KvGetString(hKeyValues, "TickMax", mortar2_tick2, sizeof(mortar2_tick2), "0");
+		mortar2_radius = KvGetNum(hKeyValues, "Radius");
+		KvGetVector(hKeyValues, "Loc", mortar2_loc);
 		m2_tick1 = StringToInt(mortar2_tick1);
 		m2_tick2 = StringToInt(mortar2_tick2);
 		
-		KvGotoNextKey(KeyValues);
-		KvGetString(KeyValues, "MortarName", mortar3_entity, sizeof(mortar3_entity), "0");
-		KvGetString(KeyValues, "TickMin", mortar3_tick1, sizeof(mortar3_tick1), "0");
-		KvGetString(KeyValues, "TickMax", mortar3_tick2, sizeof(mortar3_tick2), "0");
-		mortar3_radius = KvGetNum(KeyValues, "Radius");
-		KvGetVector(KeyValues, "Loc", mortar3_loc);
+		KvGotoNextKey(hKeyValues);
+		KvGetString(hKeyValues, "MortarName", mortar3_entity, sizeof(mortar3_entity), "0");
+		KvGetString(hKeyValues, "TickMin", mortar3_tick1, sizeof(mortar3_tick1), "0");
+		KvGetString(hKeyValues, "TickMax", mortar3_tick2, sizeof(mortar3_tick2), "0");
+		mortar3_radius = KvGetNum(hKeyValues, "Radius");
+		KvGetVector(hKeyValues, "Loc", mortar3_loc);
 		m3_tick1 = StringToInt(mortar3_tick1);
 		m3_tick2 = StringToInt(mortar3_tick2);
 		
-		KvGotoNextKey(KeyValues);
-		KvGetString(KeyValues, "MortarName", mortar4_entity, sizeof(mortar4_entity), "0");
-		KvGetString(KeyValues, "TickMin", mortar4_tick1, sizeof(mortar4_tick1), "0");
-		KvGetString(KeyValues, "TickMax", mortar4_tick2, sizeof(mortar4_tick2), "0");
-		mortar4_radius = KvGetNum(KeyValues, "Radius");
-		KvGetVector(KeyValues, "Loc", mortar4_loc);
+		KvGotoNextKey(hKeyValues);
+		KvGetString(hKeyValues, "MortarName", mortar4_entity, sizeof(mortar4_entity), "0");
+		KvGetString(hKeyValues, "TickMin", mortar4_tick1, sizeof(mortar4_tick1), "0");
+		KvGetString(hKeyValues, "TickMax", mortar4_tick2, sizeof(mortar4_tick2), "0");
+		mortar4_radius = KvGetNum(hKeyValues, "Radius");
+		KvGetVector(hKeyValues, "Loc", mortar4_loc);
 		m4_tick1 = StringToInt(mortar4_tick1);
 		m4_tick2 = StringToInt(mortar4_tick2);
-		CloseHandle(KeyValues);
+		CloseHandle(hKeyValues);
 	}
 	else
 	{
-		CloseHandle(KeyValues);
+		CloseHandle(hKeyValues);
 		return false;
 	}	
 	return true;
