@@ -80,7 +80,7 @@ public Plugin:myinfo =
 {
 	name = "DoD:S MortarKill",
 	author = "BenSib, DNA.styx",
-	description = "Gives kill credits for up to 4 map-builded mortars (dev version)",
+	description = "Gives kill credits for up to 4 map-built mortars (dev version)",
 	version = PL_VERSION
 };
 
