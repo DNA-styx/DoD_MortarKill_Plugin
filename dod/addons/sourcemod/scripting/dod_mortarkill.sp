@@ -2,7 +2,7 @@
 #include <sdktools>
 #pragma semicolon 1
 
-#define PL_VERSION "1.8-dna-dev"
+#define PL_VERSION "1.8-dev"
 
 // ---------------------------
 // Global Variables
@@ -20,15 +20,15 @@ new bool:cfgloaded = false;
 // ---------------------------
 // Mortar 1
 // ---------------------------
-new mortar1_user;           // Client index of the player who triggered the mortar
-new mortar1_calltime;       // Timestamp when the mortar was triggered
-new String:mortar1_entity[64]; // Entity name of the mortar
-new String:mortar1_tick1[64];  // Tick window min (from config)
-new String:mortar1_tick2[64];  // Tick window max (from config)
-new Float:mortar1_loc[3];      // Mortar explosion location
-new mortar1_radius;             // Mortar effect radius
-new m1_tick1;                   // Tick min as integer
-new m1_tick2;                   // Tick max as integer
+new mortar1_user;
+new mortar1_calltime;
+new String:mortar1_entity[64];
+new String:mortar1_tick1[64];
+new String:mortar1_tick2[64];
+new Float:mortar1_loc[3];
+new mortar1_radius;
+new m1_tick1;
+new m1_tick2;
 
 // ---------------------------
 // Mortar 2
@@ -76,7 +76,7 @@ public Plugin:myinfo =
 {
     name = "DoD:S MortarKill",
     author = "BenSib, DNA.styx",
-    description = "Gives kill credits for up to 4 map-built mortars (chat version, dev)",
+    description = "Gives chat notifications for up to 4 map-built mortars (v1.8-dev)",
     version = PL_VERSION
 };
 
@@ -85,7 +85,6 @@ public Plugin:myinfo =
 // ---------------------------
 public OnPluginStart()
 {
-    // Expose plugin version as a ConVar
     CreateConVar("dod_mortarkill_version", PL_VERSION, "DoD:S MortarKill", FCVAR_DONTRECORD|FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
 
     // Hook func_button outputs for mortars
@@ -111,24 +110,23 @@ public bool:MortarConfig()
     if (!FileExists(MortarCfg, true))
     {
         cfgloaded = false;
-        LogError("[Mortar] Couldn't find dod_mortar.cfg! Place it in dod/cfg/sourcemod");
+        LogError("[DOD:S Mortar] Couldn't find dod_mortar.cfg!");
         return false;
     }
 
     cfgloaded = true;
-
     new Handle:hKeyValues = CreateKeyValues("MortarKills");
     if (hKeyValues == INVALID_HANDLE)
     {
         cfgloaded = false;
-        LogError("[Mortar] Failed to create KeyValues handle!");
+        LogError("[DOD:S Mortar] Failed to create KeyValues handle!");
         return false;
     }
 
     if (!FileToKeyValues(hKeyValues, MortarCfg))
     {
         cfgloaded = false;
-        LogError("[Mortar] Failed to parse dod_mortar.cfg!");
+        LogError("[DOD:S Mortar] Failed to parse dod_mortar.cfg!");
         CloseHandle(hKeyValues);
         return false;
     }
@@ -179,7 +177,7 @@ public bool:MortarConfig()
     }
     else
     {
-        LogError("[Mortar] No entry for map \"%s\" in dod_mortar.cfg", CurrentMap);
+        LogError("[DOD:S Mortar] No entry for map \"%s\" in dod_mortar.cfg", CurrentMap);
         cfgloaded = false;
     }
 
@@ -192,8 +190,7 @@ public bool:MortarConfig()
 // ---------------------------
 public pressed(const String:output[], caller, attacker, Float:Any)
 {
-    if (!cfgloaded) return;
-    if (!ValidPlayer(attacker)) return;
+    if (!cfgloaded || !ValidPlayer(attacker)) return;
 
     decl String:entity[1024];
     GetEntPropString(caller, Prop_Data, "m_iName", entity, sizeof(entity));
@@ -226,104 +223,51 @@ public pressed(const String:output[], caller, attacker, Float:Any)
 public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {
     new victimIndex   = GetClientOfUserId(GetEventInt(event,"userid"));
-    new attackerIndex = GetClientOfUserId(GetEventInt(event, "attacker"));
+    new attackerIndex = GetClientOfUserId(GetEventInt(event,"attacker"));
 
-    if (attackerIndex == 0)
+    if (attackerIndex != 0 || !ValidPlayer(victimIndex)) return Plugin_Continue;
+
+    new deathtick = GetTime();
+
+    new min1tick = m1_tick1 + mortar1_calltime;
+    new max1tick = m1_tick2 + mortar1_calltime;
+    new min2tick = m2_tick1 + mortar2_calltime;
+    new max2tick = m2_tick2 + mortar2_calltime;
+    new min3tick = m3_tick1 + mortar3_calltime;
+    new max3tick = m3_tick2 + mortar3_calltime;
+    new min4tick = m4_tick1 + mortar4_calltime;
+    new max4tick = m4_tick2 + mortar4_calltime;
+
+    new Float:pVector[3];
+    GetClientAbsOrigin(victimIndex, pVector);
+
+    new Float:distance1 = GetVectorDistance(pVector, mortar1_loc);
+    new Float:distance2 = GetVectorDistance(pVector, mortar2_loc);
+    new Float:distance3 = GetVectorDistance(pVector, mortar3_loc);
+    new Float:distance4 = GetVectorDistance(pVector, mortar4_loc);
+
+    if (deathtick >= min1tick && deathtick <= max1tick && distance1 <= mortar1_radius && ValidPlayer(mortar1_user))
     {
-        new deathtick = GetTime();
-        new min1tick = m1_tick1 + mortar1_calltime; 
-        new max1tick = m1_tick2 + mortar1_calltime; 
-        new min2tick = m2_tick1 + mortar2_calltime; 
-        new max2tick = m2_tick2 + mortar2_calltime; 
-        new min3tick = m3_tick1 + mortar3_calltime; 
-        new max3tick = m3_tick2 + mortar3_calltime; 
-        new min4tick = m4_tick1 + mortar4_calltime; 
-        new max4tick = m4_tick2 + mortar4_calltime; 
-
-        if (ValidPlayer(victimIndex))
-        {
-            new Float:pVector[3];
-            GetClientAbsOrigin(victimIndex, pVector);
-
-            new Float:distance1 = GetVectorDistance(pVector, mortar1_loc);
-            new Float:distance2 = GetVectorDistance(pVector, mortar2_loc);
-            new Float:distance3 = GetVectorDistance(pVector, mortar3_loc);
-            new Float:distance4 = GetVectorDistance(pVector, mortar4_loc);
-
-            if (deathtick >= min1tick && deathtick <= max1tick && distance1 <= mortar1_radius && ValidPlayer(mortar1_user))
-            {
-                Mortar1Kill(mortar1_user, victimIndex);
-                return Plugin_Handled;
-            }
-            else if (deathtick >= min2tick && deathtick <= max2tick && distance2 <= mortar2_radius && ValidPlayer(mortar2_user))
-            {
-                Mortar2Kill(mortar2_user, victimIndex);
-                return Plugin_Handled;
-            }
-            else if (deathtick >= min3tick && deathtick <= max3tick && distance3 <= mortar3_radius && ValidPlayer(mortar3_user))
-            {
-                Mortar3Kill(mortar3_user, victimIndex);
-                return Plugin_Handled;
-            }
-            else if (deathtick >= min4tick && deathtick <= max4tick && distance4 <= mortar4_radius && ValidPlayer(mortar4_user))
-            {
-                Mortar4Kill(mortar4_user, victimIndex);
-                return Plugin_Handled;
-            }
-        }
+        PrintToChatAll("%N was killed by a mortar triggered by %N!", victimIndex, mortar1_user);
+        return Plugin_Handled;
     }
+    else if (deathtick >= min2tick && deathtick <= max2tick && distance2 <= mortar2_radius && ValidPlayer(mortar2_user))
+    {
+        PrintToChatAll("%N was killed by a mortar triggered by %N!", victimIndex, mortar2_user);
+        return Plugin_Handled;
+    }
+    else if (deathtick >= min3tick && deathtick <= max3tick && distance3 <= mortar3_radius && ValidPlayer(mortar3_user))
+    {
+        PrintToChatAll("%N was killed by a mortar triggered by %N!", victimIndex, mortar3_user);
+        return Plugin_Handled;
+    }
+    else if (deathtick >= min4tick && deathtick <= max4tick && distance4 <= mortar4_radius && ValidPlayer(mortar4_user))
+    {
+        PrintToChatAll("%N was killed by a mortar triggered by %N!", victimIndex, mortar4_user);
+        return Plugin_Handled;
+    }
+
     return Plugin_Continue;
-}
-
-// ---------------------------
-// Mortar Kill Functions (chat only)
-// ---------------------------
-public Mortar1Kill(attacker, victim)
-{
-    if (!ValidPlayer(attacker)) return;
-    if (!ValidPlayer(victim)) return;
-
-    PrintToChatAll("[Mortar] %N killed %N with a mortar!", attacker, victim);
-
-    new diff = (GetClientTeam(attacker) == GetClientTeam(victim)) ? -1 : 1;
-    new fkills = GetEntProp(attacker, Prop_Data, "m_iFrags") + diff;
-    SetEntProp(attacker, Prop_Data, "m_iFrags", fkills);
-}
-
-public Mortar2Kill(attacker, victim)
-{
-    if (!ValidPlayer(attacker)) return;
-    if (!ValidPlayer(victim)) return;
-
-    PrintToChatAll("[Mortar] %N killed %N with a mortar!", attacker, victim);
-
-    new diff = (GetClientTeam(attacker) == GetClientTeam(victim)) ? -1 : 1;
-    new fkills = GetEntProp(attacker, Prop_Data, "m_iFrags") + diff;
-    SetEntProp(attacker, Prop_Data, "m_iFrags", fkills);
-}
-
-public Mortar3Kill(attacker, victim)
-{
-    if (!ValidPlayer(attacker)) return;
-    if (!ValidPlayer(victim)) return;
-
-    PrintToChatAll("[Mortar] %N killed %N with a mortar!", attacker, victim);
-
-    new diff = (GetClientTeam(attacker) == GetClientTeam(victim)) ? -1 : 1;
-    new fkills = GetEntProp(attacker, Prop_Data, "m_iFrags") + diff;
-    SetEntProp(attacker, Prop_Data, "m_iFrags", fkills);
-}
-
-public Mortar4Kill(attacker, victim)
-{
-    if (!ValidPlayer(attacker)) return;
-    if (!ValidPlayer(victim)) return;
-
-    PrintToChatAll("[Mortar] %N killed %N with a mortar!", attacker, victim);
-
-    new diff = (GetClientTeam(attacker) == GetClientTeam(victim)) ? -1 : 1;
-    new fkills = GetEntProp(attacker, Prop_Data, "m_iFrags") + diff;
-    SetEntProp(attacker, Prop_Data, "m_iFrags", fkills);
 }
 
 // ---------------------------
@@ -333,10 +277,7 @@ stock bool:ValidPlayer(client,bool:check_alive=false)
 {
     if(client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client))
     {
-        if(check_alive && !IsPlayerAlive(client))
-        {
-            return false;
-        }
+        if(check_alive && !IsPlayerAlive(client)) return false;
         return true;
     }
     return false;
