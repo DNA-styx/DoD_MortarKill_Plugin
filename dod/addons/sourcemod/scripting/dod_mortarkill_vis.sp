@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////
-// DoD Mortar Visualiser v1.22
-// Reads dod_mortar.cfg from dod/cfg/sourcemod
-// Spawns env_sprite at mortar locations, scaled to radius
+// DoD Mortar Visualiser v1.32
+// Displays env_sprite at mortar loc and MortarName func_button
+// Uses matching sprite pairs from a sprite list
 /////////////////////////////////////////////////////
 
 #include <sourcemod>
@@ -11,11 +11,13 @@ public Plugin myinfo =
 {
     name        = "DoD Mortar Visualiser",
     author      = "ChatGPT, Guided by DNA.styx",
-    description = "Displays env_sprite at mortar locations scaled to radius",
-    version     = "1.22"
+    description = "Displays env_sprite at mortar locations and MortarName func_buttons with matching sprites",
+    version     = "1.32",
+    url         = "https://github.com/DNA-styx/DoD_MortarKill_Plugin"
 };
 
 #define MAX_MORTARS 32
+#define MAX_SPRITES 7
 
 // Current map name
 new String:CurrentMap[64];
@@ -31,10 +33,24 @@ float g_MortarX[MAX_MORTARS];
 float g_MortarY[MAX_MORTARS];
 float g_MortarZ[MAX_MORTARS];
 float g_MortarRadius[MAX_MORTARS];
+char  g_MortarName[MAX_MORTARS][64];
 int   g_MortarCount = 0;
 
 // Env_sprite entities
 int g_SpriteEntities[MAX_MORTARS];
+int g_ButtonSpriteEntities[MAX_MORTARS];
+
+// Sprite list
+new String:g_Sprites[MAX_SPRITES][64] =
+{
+    "sprites/blueglow1.vmt",
+    "sprites/redglow1.vmt",
+    "sprites/greenglow1.vmt",
+    "sprites/yellowglow1.vmt",
+    "sprites/purpleglow1.vmt",
+    "sprites/orangeglow1.vmt",
+    "sprites/glow1.vmt"
+};
 
 public void OnMapStart()
 {
@@ -45,29 +61,70 @@ public void OnMapStart()
     if (!cfgloaded)
         return;
 
-    // Spawn env_sprite markers scaled to radius
+    char spritePath[64];
+
+    // Spawn env_sprite markers at mortar loc and MortarName
     for (int i = 0; i < g_MortarCount; i++)
     {
         float vec[3];
         vec[0] = g_MortarX[i];
         vec[1] = g_MortarY[i];
-        vec[2] = g_MortarZ[i]; // center of the radius
+        vec[2] = g_MortarZ[i];
 
-        float spriteScale = g_MortarRadius[i] / 64.0; // scale relative to default sprite size
-        if (spriteScale > 10.0) // optional max cap
+        float spriteScale = g_MortarRadius[i] / 64.0;
+        if (spriteScale > 10.0)
             spriteScale = 10.0;
 
+        int spriteIndex = i % MAX_SPRITES;
+        strcopy(spritePath, sizeof(spritePath), g_Sprites[spriteIndex]);
+
+        // Sprite at mortar loc
         g_SpriteEntities[i] = CreateEntityByName("env_sprite");
         if (g_SpriteEntities[i] != -1)
         {
-            DispatchKeyValue(g_SpriteEntities[i], "model", "sprites/redglow1.vmt");
-            DispatchKeyValue(g_SpriteEntities[i], "rendermode", "5");   // soft glow
-            DispatchKeyValue(g_SpriteEntities[i], "rendercolor", "255 0 0");
+            DispatchKeyValue(g_SpriteEntities[i], "model", spritePath);
+            DispatchKeyValue(g_SpriteEntities[i], "rendermode", "5");
             DispatchKeyValueFloat(g_SpriteEntities[i], "scale", spriteScale);
 
             TeleportEntity(g_SpriteEntities[i], vec, NULL_VECTOR, NULL_VECTOR);
             DispatchSpawn(g_SpriteEntities[i]);
             ActivateEntity(g_SpriteEntities[i]);
+        }
+
+        // Sprite at func_button MortarName
+        int ent = -1;
+        bool foundButton = false;
+        while ((ent = FindEntityByClassname(ent, "func_button")) != -1)
+        {
+            char targetname[64];
+            if (!GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname)))
+                continue;
+
+            if (StrEqual(targetname, g_MortarName[i]))
+            {
+                float buttonVec[3];
+                GetEntPropVector(ent, Prop_Send, "m_vecOrigin", buttonVec);
+
+                g_ButtonSpriteEntities[i] = CreateEntityByName("env_sprite");
+                if (g_ButtonSpriteEntities[i] != -1)
+                {
+                    DispatchKeyValue(g_ButtonSpriteEntities[i], "model", spritePath);
+                    DispatchKeyValue(g_ButtonSpriteEntities[i], "rendermode", "5");
+                    DispatchKeyValueFloat(g_ButtonSpriteEntities[i], "scale", 1.0);
+
+                    TeleportEntity(g_ButtonSpriteEntities[i], buttonVec, NULL_VECTOR, NULL_VECTOR);
+                    DispatchSpawn(g_ButtonSpriteEntities[i]);
+                    ActivateEntity(g_ButtonSpriteEntities[i]);
+                }
+
+                foundButton = true;
+                break;
+            }
+        }
+
+        if (!foundButton)
+        {
+            g_ButtonSpriteEntities[i] = -1;
         }
     }
 
@@ -76,13 +133,17 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-    // Remove sprite markers safely
     for (int i = 0; i < g_MortarCount; i++)
     {
         if (g_SpriteEntities[i] != -1)
         {
             AcceptEntityInput(g_SpriteEntities[i], "Kill");
             g_SpriteEntities[i] = -1;
+        }
+        if (g_ButtonSpriteEntities[i] != -1)
+        {
+            AcceptEntityInput(g_ButtonSpriteEntities[i], "Kill");
+            g_ButtonSpriteEntities[i] = -1;
         }
     }
 }
@@ -103,7 +164,6 @@ void LoadMortarsForMap()
         return;
     }
 
-    // Jump to the current map key
     if (!KvJumpToKey(kv, CurrentMap, false))
     {
         PrintToServer("[MortarVis] No mortars defined for map %s", CurrentMap);
@@ -118,7 +178,6 @@ void LoadMortarsForMap()
         return;
     }
 
-    // Loop through all numbered subkeys under this map
     do
     {
         if (g_MortarCount >= MAX_MORTARS)
@@ -150,6 +209,10 @@ void LoadMortarsForMap()
         g_MortarY[g_MortarCount] = y;
         g_MortarZ[g_MortarCount] = z;
         g_MortarRadius[g_MortarCount] = radius;
+        strcopy(g_MortarName[g_MortarCount], sizeof(g_MortarName[]), name);
+
+        g_SpriteEntities[g_MortarCount] = -1;
+        g_ButtonSpriteEntities[g_MortarCount] = -1;
 
         g_MortarCount++;
 
