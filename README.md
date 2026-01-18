@@ -1,5 +1,5 @@
 # DESCRIPTION:
-This plugin gives kill (or TeamKill!) credits for using a map-built mortar at the right moment. You need to configure each mortar one by one in the file "mortar.cfg".
+This plugin prints on screen for kills using a map-built mortar at the right moment. You need to configure each mortar one by one in the file "mortar.cfg".
 
 # INSTALLATION:
 - dod_mortarkill.smx --> "dod/addons/sourcemod/plugins/"
