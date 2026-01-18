@@ -2,7 +2,7 @@
 #include <sdktools>
 #pragma semicolon 1
 
-#define PL_VERSION "1.7-dev"
+#define PL_VERSION "1.8-dev"
 
 // ---------------------------
 // Global Variables
@@ -92,7 +92,7 @@ public OnPluginStart()
     HookEntityOutput("func_button", "OnPressed", pressed);
 
     // Hook the player death event (pre-hook)
-    HookEvent("player_death", OnPlayerDeath, EventHookMode_Pre);
+    HookEvent("player_death", OnPlayerDeath, EventHookMode_Post);
 }
 
 // ---------------------------
