@@ -16,7 +16,7 @@ public Plugin myinfo =
     name        = "DoD Mortar Visualiser",
     author      = "claude.ai, Guided by DNA.styx",
     description = "Displays env_sprite at mortar locations and MortarName func_buttons with matching sprites",
-    version     = "2.0.18",
+    version     = "2.0.28",
     url         = "https://github.com/DNA-styx/DoD_MortarKill_Plugin"
 };
 
@@ -31,6 +31,9 @@ enum struct MortarData
     float x;
     float y;
     float z;
+    float originalX;  // Store original coordinates from config
+    float originalY;
+    float originalZ;
     float radius;
     float originalRadius;  // Store original radius from config
     char name[64];
@@ -47,6 +50,12 @@ bool g_ConfigLoaded = false;
 // Admin menu
 TopMenu g_hTopMenu;
 TopMenuObject g_MortarMenuCategory;
+
+// Axis guides
+int g_BeamSprite;
+int g_HaloSprite;
+int g_EditingMortarIndex = -1;  // Only one person editing at a time
+Handle g_AxisTimer = INVALID_HANDLE;
 
 // Sprite list
 char g_Sprites[MAX_SPRITES][64] =
@@ -68,6 +77,7 @@ ConVar g_cvShowButtons;
 public void ShowMortarListMenu(int client);
 public void ShowEditMortarMenu(int client, int mortarIndex);
 public void ShowChangeRadiusMenu(int client, int mortarIndex);
+public void ShowChangeLocMenu(int client, int mortarIndex);
 
 //=============================================================================
 // Plugin Lifecycle
@@ -102,9 +112,20 @@ public void OnMapStart()
 {
     GetCurrentMap(g_CurrentMap, sizeof(g_CurrentMap));
     
+    // Precache beam sprites
+    g_BeamSprite = PrecacheModel("materials/sprites/laserbeam.vmt");
+    g_HaloSprite = PrecacheModel("materials/sprites/glow01.vmt");
+    
     // Reset state
     g_MortarCount = 0;
     g_ConfigLoaded = false;
+    
+    // Start axis guide timer
+    if (g_AxisTimer != INVALID_HANDLE)
+    {
+        delete g_AxisTimer;
+    }
+    g_AxisTimer = CreateTimer(0.1, Timer_DrawAxisGuides, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
     
     // Load and spawn
     if (LoadMortarConfig())
@@ -116,6 +137,14 @@ public void OnMapStart()
 public void OnMapEnd()
 {
     RemoveAllSprites();
+    
+    if (g_AxisTimer != INVALID_HANDLE)
+    {
+        delete g_AxisTimer;
+        g_AxisTimer = INVALID_HANDLE;
+    }
+    
+    g_EditingMortarIndex = -1;
     g_MortarCount = 0;
     g_ConfigLoaded = false;
 }
@@ -259,6 +288,7 @@ public int MenuHandler_MortarList(Menu menu, MenuAction action, int param1, int 
         }
         
         // Show edit menu for this mortar
+        g_EditingMortarIndex = index;  // Mark as editing
         ShowEditMortarMenu(client, index);
     }
     
@@ -274,7 +304,7 @@ public void ShowEditMortarMenu(int client, int mortarIndex)
     Menu menu = new Menu(MenuHandler_EditMortar);
     
     char title[256];
-    Format(title, sizeof(title), "Edit: %s\nRadius: %.0f units", 
+    Format(title, sizeof(title), "Edit: %s\nRadius: %.0f", 
         g_Mortars[mortarIndex].name,
         g_Mortars[mortarIndex].radius);
     menu.SetTitle(title);
@@ -282,7 +312,12 @@ public void ShowEditMortarMenu(int client, int mortarIndex)
     char indexStr[8];
     IntToString(mortarIndex, indexStr, sizeof(indexStr));
     
-    menu.AddItem(indexStr, "Change Radius");
+    char item[16];
+    Format(item, sizeof(item), "radius_%s", indexStr);
+    menu.AddItem(item, "Change Radius");
+    
+    Format(item, sizeof(item), "loc_%s", indexStr);
+    menu.AddItem(item, "Change Loc");
     
     menu.ExitBackButton = true;
     menu.Display(client, MENU_TIME_FOREVER);
@@ -298,17 +333,29 @@ public int MenuHandler_EditMortar(Menu menu, MenuAction action, int param1, int 
     {
         if (param2 == MenuCancel_ExitBack)
         {
+            g_EditingMortarIndex = -1;  // Stop editing
             ShowMortarListMenu(param1);
         }
     }
     else if (action == MenuAction_Select)
     {
         int client = param1;
-        char info[8];
+        char info[16];
         menu.GetItem(param2, info, sizeof(info));
-        int index = StringToInt(info);
         
-        ShowChangeRadiusMenu(client, index);
+        // Parse action and index
+        char parts[2][8];
+        ExplodeString(info, "_", parts, 2, 8);
+        int mortarIndex = StringToInt(parts[1]);
+        
+        if (StrEqual(parts[0], "radius"))
+        {
+            ShowChangeRadiusMenu(client, mortarIndex);
+        }
+        else if (StrEqual(parts[0], "loc"))
+        {
+            ShowChangeLocMenu(client, mortarIndex);
+        }
     }
     
     return 0;
@@ -412,6 +459,133 @@ public int MenuHandler_ChangeRadius(Menu menu, MenuAction action, int param1, in
         
         // Show menu again with updated radius
         ShowChangeRadiusMenu(client, mortarIndex);
+    }
+    
+    return 0;
+}
+
+//=============================================================================
+// Change Location Menu
+//=============================================================================
+
+public void ShowChangeLocMenu(int client, int mortarIndex)
+{
+    Menu menu = new Menu(MenuHandler_ChangeLoc);
+    
+    char title[256];
+    Format(title, sizeof(title), "Change Loc: %s\n%.1f, %.1f, %.1f", 
+        g_Mortars[mortarIndex].name,
+        g_Mortars[mortarIndex].x,
+        g_Mortars[mortarIndex].y,
+        g_Mortars[mortarIndex].z);
+    menu.SetTitle(title);
+    
+    char indexStr[16];
+    
+    // X axis options (Red)
+    Format(indexStr, sizeof(indexStr), "xplus_%d", mortarIndex);
+    menu.AddItem(indexStr, "X+ (Red)");
+    
+    Format(indexStr, sizeof(indexStr), "xminus_%d", mortarIndex);
+    menu.AddItem(indexStr, "X- (Red)");
+    
+    // Y axis options (Green)
+    Format(indexStr, sizeof(indexStr), "yplus_%d", mortarIndex);
+    menu.AddItem(indexStr, "Y+ (Green)");
+    
+    Format(indexStr, sizeof(indexStr), "yminus_%d", mortarIndex);
+    menu.AddItem(indexStr, "Y- (Green)");
+    
+    // Z axis options (Blue)
+    Format(indexStr, sizeof(indexStr), "zplus_%d", mortarIndex);
+    menu.AddItem(indexStr, "Z+ (Blue)");
+    
+    Format(indexStr, sizeof(indexStr), "zminus_%d", mortarIndex);
+    menu.AddItem(indexStr, "Z- (Blue)");
+    
+    // Reset option
+    Format(indexStr, sizeof(indexStr), "reset_%d", mortarIndex);
+    menu.AddItem(indexStr, "Reset to Original");
+    
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_ChangeLoc(Menu menu, MenuAction action, int param1, int param2)
+{
+    if (action == MenuAction_End)
+    {
+        delete menu;
+    }
+    else if (action == MenuAction_Cancel)
+    {
+        if (param2 == MenuCancel_ExitBack)
+        {
+            int client = param1;
+            char info[16];
+            menu.GetItem(0, info, sizeof(info));
+            
+            // Extract mortar index from first item
+            char parts[2][8];
+            ExplodeString(info, "_", parts, 2, 8);
+            int mortarIndex = StringToInt(parts[1]);
+            
+            ShowEditMortarMenu(client, mortarIndex);
+        }
+    }
+    else if (action == MenuAction_Select)
+    {
+        int client = param1;
+        char info[16];
+        menu.GetItem(param2, info, sizeof(info));
+        
+        // Parse action and index
+        char parts[2][8];
+        ExplodeString(info, "_", parts, 2, 8);
+        int mortarIndex = StringToInt(parts[1]);
+        
+        // Adjust coordinates based on selection
+        if (StrEqual(parts[0], "xplus"))
+        {
+            g_Mortars[mortarIndex].x += 100.0;
+        }
+        else if (StrEqual(parts[0], "xminus"))
+        {
+            g_Mortars[mortarIndex].x -= 100.0;
+        }
+        else if (StrEqual(parts[0], "yplus"))
+        {
+            g_Mortars[mortarIndex].y += 100.0;
+        }
+        else if (StrEqual(parts[0], "yminus"))
+        {
+            g_Mortars[mortarIndex].y -= 100.0;
+        }
+        else if (StrEqual(parts[0], "zplus"))
+        {
+            g_Mortars[mortarIndex].z += 100.0;
+        }
+        else if (StrEqual(parts[0], "zminus"))
+        {
+            g_Mortars[mortarIndex].z -= 100.0;
+        }
+        else if (StrEqual(parts[0], "reset"))
+        {
+            g_Mortars[mortarIndex].x = g_Mortars[mortarIndex].originalX;
+            g_Mortars[mortarIndex].y = g_Mortars[mortarIndex].originalY;
+            g_Mortars[mortarIndex].z = g_Mortars[mortarIndex].originalZ;
+        }
+        
+        // Respawn sprite at new location
+        RemoveMortarSprite(mortarIndex);
+        SpawnMortarSprite(mortarIndex);
+        if (g_cvShowButtons.BoolValue)
+        {
+            SpawnButtonSprite(mortarIndex);
+        }
+        
+        // Show menu again with updated coordinates
+        ShowChangeLocMenu(client, mortarIndex);
     }
     
     return 0;
@@ -633,6 +807,9 @@ bool ParseMortarEntry(KeyValues kv, int index)
     g_Mortars[index].x = x;
     g_Mortars[index].y = y;
     g_Mortars[index].z = z;
+    g_Mortars[index].originalX = x;  // Store originals
+    g_Mortars[index].originalY = y;
+    g_Mortars[index].originalZ = z;
     g_Mortars[index].radius = radius;
     g_Mortars[index].originalRadius = radius;  // Store original
     strcopy(g_Mortars[index].name, sizeof(MortarData::name), name);
@@ -764,6 +941,86 @@ void RemoveMortarSprite(int index)
 }
 
 //=============================================================================
+// Axis Guide System (using Temp Entity Beams)
+//=============================================================================
+
+public Action Timer_DrawAxisGuides(Handle timer)
+{
+    // Only draw if someone is editing
+    if (g_EditingMortarIndex < 0 || g_EditingMortarIndex >= g_MortarCount)
+        return Plugin_Continue;
+    
+    DrawMortarAxes(g_EditingMortarIndex);
+    
+    return Plugin_Continue;
+}
+
+void DrawMortarAxes(int mortarIndex)
+{
+    float origin[3];
+    origin[0] = g_Mortars[mortarIndex].x;
+    origin[1] = g_Mortars[mortarIndex].y;
+    origin[2] = g_Mortars[mortarIndex].z;
+    
+    float length = 500.0;  // Fixed length for visibility
+    
+    // Draw X axis (Red) - line through center
+    DrawAxisBeam(origin, length, 0, true);   // Positive direction
+    DrawAxisBeam(origin, length, 0, false);  // Negative direction
+    
+    // Draw Y axis (Green) - line through center
+    DrawAxisBeam(origin, length, 1, true);
+    DrawAxisBeam(origin, length, 1, false);
+    
+    // Draw Z axis (Blue) - line through center
+    DrawAxisBeam(origin, length, 2, true);
+    DrawAxisBeam(origin, length, 2, false);
+}
+
+void DrawAxisBeam(const float origin[3], float length, int axis, bool positive)
+{
+    float end[3];
+    
+    // Copy origin to end
+    end[0] = origin[0];
+    end[1] = origin[1];
+    end[2] = origin[2];
+    
+    // Extend along the specified axis in positive or negative direction
+    if (positive)
+        end[axis] += length;
+    else
+        end[axis] -= length;
+    
+    int color[4] = {0, 0, 0, 255};
+    
+    if (axis == 0)
+        color[0] = 255;      // X = Red
+    else if (axis == 1)
+        color[1] = 255;      // Y = Green
+    else if (axis == 2)
+        color[2] = 255;      // Z = Blue
+    
+    TE_SetupBeamPoints(
+        origin,
+        end,
+        g_BeamSprite,
+        g_HaloSprite,
+        0,                  // startframe
+        0,                  // framerate
+        0.2,                // life (slightly longer than timer interval)
+        8.0,                // width
+        8.0,                // endwidth
+        0,                  // fade length
+        0.0,                // amplitude
+        color,              // color (r,g,b,a)
+        0                   // flags
+    );
+    
+    TE_SendToAll();
+}
+
+//=============================================================================
 // Utility Functions
 //=============================================================================
 
@@ -786,14 +1043,11 @@ int FindButtonByName(const char[] targetname)
 
 bool ValidateCoordinates(float x, float y, float z)
 {
-    // Check for invalid zero coordinates
+    // Check for invalid zero coordinates (only during config load)
     if (x == 0.0 && y == 0.0 && z == 0.0)
         return false;
     
-    // Check for extreme values (likely errors)
-    if (FloatAbs(x) > 50000.0 || FloatAbs(y) > 50000.0 || FloatAbs(z) > 50000.0)
-        return false;
-    
+    // Allow any values during editing
     return true;
 }
 
