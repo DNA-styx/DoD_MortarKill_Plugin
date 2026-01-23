@@ -16,13 +16,12 @@ public Plugin myinfo =
     name        = "DoD Mortar Visualiser",
     author      = "claude.ai, Guided by DNA.styx",
     description = "Displays env_sprite at mortar locations and MortarName func_buttons with matching sprites",
-    version     = "2.0.28",
+    version     = "2.0.30",
     url         = "https://github.com/DNA-styx/DoD_MortarKill_Plugin"
 };
 
 // Constants
 #define MAX_MORTARS 64
-#define MAX_SPRITES 7
 #define CONFIG_PATH "cfg/sourcemod/dod_mortar.cfg"
 
 // Mortar data structure
@@ -56,18 +55,7 @@ int g_BeamSprite;
 int g_HaloSprite;
 int g_EditingMortarIndex = -1;  // Only one person editing at a time
 Handle g_AxisTimer = INVALID_HANDLE;
-
-// Sprite list
-char g_Sprites[MAX_SPRITES][64] =
-{
-    "sprites/blueglow1.vmt",
-    "sprites/redglow1.vmt",
-    "sprites/greenglow1.vmt",
-    "sprites/yellowglow1.vmt",
-    "sprites/purpleglow1.vmt",
-    "sprites/orangeglow1.vmt",
-    "sprites/glow1.vmt"
-};
+bool g_ShowAllSprites = false;  // Track if "Show All" is active
 
 // ConVars
 ConVar g_cvEnabled;
@@ -246,6 +234,17 @@ public void ShowMortarListMenu(int client)
     Menu menu = new Menu(MenuHandler_MortarList);
     menu.SetTitle("Mortars on %s:", g_CurrentMap);
     
+    // Add "Show All" toggle option at the top
+    if (g_ShowAllSprites)
+    {
+        menu.AddItem("showall", "Show All: ON (click to hide)");
+    }
+    else
+    {
+        menu.AddItem("showall", "Show All: OFF (click to show)");
+    }
+    
+    // Add individual mortars
     for (int i = 0; i < g_MortarCount; i++)
     {
         char index[8];
@@ -275,6 +274,37 @@ public int MenuHandler_MortarList(Menu menu, MenuAction action, int param1, int 
         int client = param1;
         char info[8];
         menu.GetItem(param2, info, sizeof(info));
+        
+        // Check if "Show All" was selected
+        if (StrEqual(info, "showall"))
+        {
+            g_ShowAllSprites = !g_ShowAllSprites;
+            
+            if (g_ShowAllSprites)
+            {
+                // Show all sprites
+                for (int i = 0; i < g_MortarCount; i++)
+                {
+                    SpawnMortarSprite(i);
+                    if (g_cvShowButtons.BoolValue)
+                    {
+                        SpawnButtonSprite(i);
+                    }
+                }
+            }
+            else
+            {
+                // Hide all sprites
+                for (int i = 0; i < g_MortarCount; i++)
+                {
+                    RemoveMortarSprite(i);
+                }
+            }
+            
+            ShowMortarListMenu(client);
+            return 0;
+        }
+        
         int index = StringToInt(info);
         
         // Turn on sprite if not already visible
@@ -334,7 +364,20 @@ public int MenuHandler_EditMortar(Menu menu, MenuAction action, int param1, int 
         if (param2 == MenuCancel_ExitBack)
         {
             g_EditingMortarIndex = -1;  // Stop editing
-            ShowMortarListMenu(param1);
+            
+            // Also hide sprites when exiting edit menu
+            int client = param1;
+            char info[16];
+            menu.GetItem(0, info, sizeof(info));
+            
+            // Extract mortar index from first item
+            char parts[2][8];
+            ExplodeString(info, "_", parts, 2, 8);
+            int mortarIndex = StringToInt(parts[1]);
+            
+            RemoveMortarSprite(mortarIndex);
+            
+            ShowMortarListMenu(client);
         }
     }
     else if (action == MenuAction_Select)
@@ -848,10 +891,9 @@ void SpawnMortarSprite(int index)
     // Scale represents the blast radius
     float scale = g_Mortars[index].radius / 100.0;
     
-    // Get sprite path
-    int spriteIndex = index % MAX_SPRITES;
+    // Use white sprite for all mortars
     char spritePath[64];
-    strcopy(spritePath, sizeof(spritePath), g_Sprites[spriteIndex]);
+    strcopy(spritePath, sizeof(spritePath), "sprites/glow1.vmt");
     
     // Create sprite
     int entity = CreateSprite(pos, spritePath, scale);
@@ -879,10 +921,9 @@ void SpawnButtonSprite(int index)
     float pos[3];
     GetEntPropVector(buttonEnt, Prop_Send, "m_vecOrigin", pos);
     
-    // Get sprite path (same as mortar sprite)
-    int spriteIndex = index % MAX_SPRITES;
+    // Use white sprite for button location
     char spritePath[64];
-    strcopy(spritePath, sizeof(spritePath), g_Sprites[spriteIndex]);
+    strcopy(spritePath, sizeof(spritePath), "sprites/glow1.vmt");
     
     // Create sprite at button location
     int entity = CreateSprite(pos, spritePath, 1.0);
