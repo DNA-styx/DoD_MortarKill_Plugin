@@ -1,4 +1,18 @@
-/////////////////////////////////////////////////////
+public void OnClientDisconnect(int client)
+{
+    // Clean up if this client was editing
+    if (g_EditingMortarIndex != -1)
+    {
+        for (int i = 0; i < g_MortarCount; i++)
+        {
+            if (g_Mortars[i].spriteEntity != -1 || g_Mortars[i].buttonSpriteEntity != -1)
+            {
+                RemoveMortarSprite(i);
+            }
+        }
+        g_EditingMortarIndex = -1;
+    }
+}/////////////////////////////////////////////////////
 // DoD Mortar Visualiser v2.0.3
 // Displays env_sprite at mortar loc and MortarName func_button
 // Uses matching sprite pairs from a sprite list
@@ -16,7 +30,7 @@ public Plugin myinfo =
     name        = "DoD Mortar Visualiser",
     author      = "claude.ai, Guided by DNA.styx",
     description = "Displays env_sprite at mortar locations and MortarName func_buttons with matching sprites",
-    version     = "2.0.30",
+    version     = "2.0.47",
     url         = "https://github.com/DNA-styx/DoD_MortarKill_Plugin"
 };
 
@@ -237,11 +251,11 @@ public void ShowMortarListMenu(int client)
     // Add "Show All" toggle option at the top
     if (g_ShowAllSprites)
     {
-        menu.AddItem("showall", "Show All: ON (click to hide)");
+        menu.AddItem("showall", "Show All: ON");
     }
     else
     {
-        menu.AddItem("showall", "Show All: OFF (click to show)");
+        menu.AddItem("showall", "Show All: OFF");
     }
     
     // Add individual mortars
@@ -307,14 +321,14 @@ public int MenuHandler_MortarList(Menu menu, MenuAction action, int param1, int 
         
         int index = StringToInt(info);
         
-        // Turn on sprite if not already visible
+        // Turn on sprite if not already visible (don't duplicate)
         if (g_Mortars[index].spriteEntity == -1)
         {
             SpawnMortarSprite(index);
-            if (g_cvShowButtons.BoolValue)
-            {
-                SpawnButtonSprite(index);
-            }
+        }
+        if (g_cvShowButtons.BoolValue && g_Mortars[index].buttonSpriteEntity == -1)
+        {
+            SpawnButtonSprite(index);
         }
         
         // Show edit menu for this mortar
@@ -334,9 +348,7 @@ public void ShowEditMortarMenu(int client, int mortarIndex)
     Menu menu = new Menu(MenuHandler_EditMortar);
     
     char title[256];
-    Format(title, sizeof(title), "Edit: %s\nRadius: %.0f", 
-        g_Mortars[mortarIndex].name,
-        g_Mortars[mortarIndex].radius);
+    Format(title, sizeof(title), "Edit: %s", g_Mortars[mortarIndex].name);
     menu.SetTitle(title);
     
     char indexStr[8];
