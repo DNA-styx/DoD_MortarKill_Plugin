@@ -1,19 +1,5 @@
-public void OnClientDisconnect(int client)
-{
-    // Clean up if this client was editing
-    if (g_EditingMortarIndex != -1)
-    {
-        for (int i = 0; i < g_MortarCount; i++)
-        {
-            if (g_Mortars[i].spriteEntity != -1 || g_Mortars[i].buttonSpriteEntity != -1)
-            {
-                RemoveMortarSprite(i);
-            }
-        }
-        g_EditingMortarIndex = -1;
-    }
-}/////////////////////////////////////////////////////
-// DoD Mortar Visualiser v2.0.3
+/////////////////////////////////////////////////////
+// DoD Mortar Visualiser v2.0.44
 // Displays env_sprite at mortar loc and MortarName func_button
 // Uses matching sprite pairs from a sprite list
 /////////////////////////////////////////////////////
@@ -30,7 +16,7 @@ public Plugin myinfo =
     name        = "DoD Mortar Visualiser",
     author      = "claude.ai, Guided by DNA.styx",
     description = "Displays env_sprite at mortar locations and MortarName func_buttons with matching sprites",
-    version     = "2.0.47",
+    version     = "2.0.44",
     url         = "https://github.com/DNA-styx/DoD_MortarKill_Plugin"
 };
 
@@ -107,7 +93,7 @@ public void OnPluginStart()
         OnAdminMenuReady(topmenu);
     }
     
-    PrintToServer("[MortarVis] Plugin loaded - v2.0.6");
+    PrintToServer("[MortarVis] Plugin loaded - v2.0.44");
 }
 
 public void OnMapStart()
@@ -215,17 +201,12 @@ public void ItemHandler_Reload(TopMenu topmenu, TopMenuAction action, TopMenuObj
     }
 }
 
-public void ItemHandler_FindButtons(TopMenu topmenu, TopMenuAction action, TopMenuObject object_id, int param, char[] buffer, int maxlength)
+public void OnLibraryRemoved(const char[] name)
 {
-    if (action == TopMenuAction_DisplayOption)
+    if (StrEqual(name, "adminmenu"))
     {
-        Format(buffer, maxlength, "Find Buttons");
-    }
-    else if (action == TopMenuAction_SelectOption)
-    {
-        int client = param;
-        Command_FindButtons(client, 0);
-        g_hTopMenu.Display(client, TopMenuPosition_LastCategory);
+        g_hTopMenu = null;
+        g_MortarMenuCategory = INVALID_TOPMENUOBJECT;
     }
 }
 
@@ -321,14 +302,14 @@ public int MenuHandler_MortarList(Menu menu, MenuAction action, int param1, int 
         
         int index = StringToInt(info);
         
-        // Turn on sprite if not already visible (don't duplicate)
+        // Turn on sprite if not already visible
         if (g_Mortars[index].spriteEntity == -1)
         {
             SpawnMortarSprite(index);
-        }
-        if (g_cvShowButtons.BoolValue && g_Mortars[index].buttonSpriteEntity == -1)
-        {
-            SpawnButtonSprite(index);
+            if (g_cvShowButtons.BoolValue)
+            {
+                SpawnButtonSprite(index);
+            }
         }
         
         // Show edit menu for this mortar
@@ -375,9 +356,6 @@ public int MenuHandler_EditMortar(Menu menu, MenuAction action, int param1, int 
     {
         if (param2 == MenuCancel_ExitBack)
         {
-            g_EditingMortarIndex = -1;  // Stop editing
-            
-            // Also hide sprites when exiting edit menu
             int client = param1;
             char info[16];
             menu.GetItem(0, info, sizeof(info));
@@ -387,6 +365,8 @@ public int MenuHandler_EditMortar(Menu menu, MenuAction action, int param1, int 
             ExplodeString(info, "_", parts, 2, 8);
             int mortarIndex = StringToInt(parts[1]);
             
+            // Clean up sprites and stop editing
+            g_EditingMortarIndex = -1;
             RemoveMortarSprite(mortarIndex);
             
             ShowMortarListMenu(client);
@@ -644,15 +624,6 @@ public int MenuHandler_ChangeLoc(Menu menu, MenuAction action, int param1, int p
     }
     
     return 0;
-}
-
-public void OnLibraryRemoved(const char[] name)
-{
-    if (StrEqual(name, "adminmenu"))
-    {
-        g_hTopMenu = null;
-        g_MortarMenuCategory = INVALID_TOPMENUOBJECT;
-    }
 }
 
 //=============================================================================
