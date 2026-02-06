@@ -31,6 +31,11 @@ While you can adjust the mortar detection sphere using the visualiser, it can't 
 <img width="500" height="281" alt="image" src="https://github.com/user-attachments/assets/22299f25-7a6a-4bfe-95ac-a4f03bd21040" />
 <img width="500" height="281" alt="image" src="https://github.com/user-attachments/assets/fc0ad596-496f-4416-bf96-3690b8b7f6ce" />
 
+Visualiser Helper
+![205A97~1](https://github.com/user-attachments/assets/670754b6-28b2-4195-b18d-485ee433e744)
+![2040B2~1](https://github.com/user-attachments/assets/1a01a3f5-a320-4669-bce8-d59d3e9192e1)
+
+
 # CONFIG SETUP
 
 Example
