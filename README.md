@@ -1,9 +1,17 @@
 # DESCRIPTION:
-This plugin prints on screen for kills using a map-built mortar at the right moment. You need to configure each mortar one by one in the file "mortar.cfg".
+This plugin prints on screen for kills using a map-built mortar at the right moment. Each mortar is configured one by one in the file "mortar.cfg".
 
 # INSTALLATION:
+Server with RCBot2
+- dod_mortarkill_v2.smx --> "dod/addons/sourcemod/plugins/"
+- dod_mortar.cfg --> "dod/cfg/sourcemod"
+Server without RCBot2
 - dod_mortarkill.smx --> "dod/addons/sourcemod/plugins/"
 - dod_mortar.cfg --> "dod/cfg/sourcemod"
+
+# Helper Programs
+To visualise the mortar kil zones run this plugin on a listen server
+- dod_mortarkill_vis2.smx --> "dod/addons/sourcemod/plugins/"
 
 # AVAILABLE MAPS:
 - dod_strand
