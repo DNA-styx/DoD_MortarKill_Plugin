@@ -9,6 +9,8 @@ This plugin prints on screen for kills using a map-built mortar at the right mom
 To visualise the mortar kil zones run this plugin on a listen server
 - dod_mortarkill_vis2.smx --> "dod/addons/sourcemod/plugins/"
 
+While you can adjust the mortar detection sphere using the visualiser, it can't be saved due to the .cfg file being outside of the sourcemod folder. So manually edit mortar.cfg and reload to verify.
+
 # AVAILABLE MAPS:
 - dod_strand
 - dod_strand_night
