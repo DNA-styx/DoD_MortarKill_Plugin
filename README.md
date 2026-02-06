@@ -1,13 +1,26 @@
 # DESCRIPTION:
-This plugin prints on screen for kills using a map-built mortar at the right moment. You need to configure each mortar one by one in the file "mortar.cfg".
+This plugin prints on screen for kills using a map-built mortar at the right moment. Each mortar is configured one by one in the file "mortar.cfg".
 
 # INSTALLATION:
+
+Server with RCBot2
+- dod_mortarkill_v2.smx --> "dod/addons/sourcemod/plugins/"
+- dod_mortar.cfg --> "dod/cfg/sourcemod"
+
+Server without RCBot2
 - dod_mortarkill.smx --> "dod/addons/sourcemod/plugins/"
 - dod_mortar.cfg --> "dod/cfg/sourcemod"
 
+# Helper Programs
+To visualise the mortar kil zones run this plugin on a listen server
+- dod_mortarkill_vis2.smx --> "dod/addons/sourcemod/plugins/"
+
 # AVAILABLE MAPS:
 - dod_strand
-- dod_strand_night (only axis mortars)
+- dod_strand_night
+- dod_dday_h
+- dod_longestday_b5
+- dickmanns_deepriver_syp_final
 - dod_ardennes_rc1
 - dod_ardennes_rc1_dbs_b1
 - dod_helms_attack_v2
@@ -16,9 +29,6 @@ This plugin prints on screen for kills using a map-built mortar at the right mom
 - dod_ebensee_b4
 
 # TODO MAPS:
-- dod_dday_h
-- dod_longestday_b5
-- dickmanns_deepriver_syp_final
 - others?
 
 # Images:
