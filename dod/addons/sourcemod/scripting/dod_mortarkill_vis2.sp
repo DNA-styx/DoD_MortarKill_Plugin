@@ -16,7 +16,7 @@ public Plugin myinfo =
     name        = "DoD Mortar Visualiser",
     author      = "claude.ai, Guided by DNA.styx",
     description = "Displays env_sprite at mortar locations and MortarName func_buttons with matching sprites",
-    version     = "2.0.44",
+    version     = "2.0.50",
     url         = "https://github.com/DNA-styx/DoD_MortarKill_Plugin"
 };
 
@@ -59,7 +59,6 @@ bool g_ShowAllSprites = false;  // Track if "Show All" is active
 
 // ConVars
 ConVar g_cvEnabled;
-ConVar g_cvShowButtons;
 
 // Forward declarations
 public void ShowMortarListMenu(int client);
@@ -75,12 +74,10 @@ public void OnPluginStart()
 {
     // Create ConVars
     g_cvEnabled = CreateConVar("sm_mortarvis_enable", "1", "Enable mortar visualization", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_cvShowButtons = CreateConVar("sm_mortarvis_showbuttons", "1", "Show sprites at func_buttons", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     
     // Admin commands
     RegAdminCmd("sm_mortarvis_reload", Command_ReloadConfig, ADMFLAG_CONFIG, "Reload mortar configuration");
     RegAdminCmd("sm_mortarvis_list", Command_ListMortars, ADMFLAG_CONFIG, "List all mortars for current map");
-    RegAdminCmd("sm_mortarvis_findbuttons", Command_FindButtons, ADMFLAG_CONFIG, "Find all func_button entities on map");
     RegAdminCmd("sm_mortarvis_menu", Command_OpenMenu, ADMFLAG_CONFIG, "Open mortar admin menu");
     
     // Auto-generate config
@@ -93,7 +90,7 @@ public void OnPluginStart()
         OnAdminMenuReady(topmenu);
     }
     
-    PrintToServer("[MortarVis] Plugin loaded - v2.0.44");
+    PrintToServer("[MortarVis] Plugin loaded - v2.0.50");
 }
 
 public void OnMapStart()
@@ -281,10 +278,7 @@ public int MenuHandler_MortarList(Menu menu, MenuAction action, int param1, int 
                 for (int i = 0; i < g_MortarCount; i++)
                 {
                     SpawnMortarSprite(i);
-                    if (g_cvShowButtons.BoolValue)
-                    {
-                        SpawnButtonSprite(i);
-                    }
+                    SpawnButtonSprite(i);
                 }
             }
             else
@@ -306,10 +300,7 @@ public int MenuHandler_MortarList(Menu menu, MenuAction action, int param1, int 
         if (g_Mortars[index].spriteEntity == -1)
         {
             SpawnMortarSprite(index);
-            if (g_cvShowButtons.BoolValue)
-            {
-                SpawnButtonSprite(index);
-            }
+            SpawnButtonSprite(index);
         }
         
         // Show edit menu for this mortar
@@ -487,10 +478,7 @@ public int MenuHandler_ChangeRadius(Menu menu, MenuAction action, int param1, in
         // Respawn sprite with new size
         RemoveMortarSprite(mortarIndex);
         SpawnMortarSprite(mortarIndex);
-        if (g_cvShowButtons.BoolValue)
-        {
-            SpawnButtonSprite(mortarIndex);
-        }
+        SpawnButtonSprite(mortarIndex);
         
         // Show menu again with updated radius
         ShowChangeRadiusMenu(client, mortarIndex);
@@ -614,10 +602,7 @@ public int MenuHandler_ChangeLoc(Menu menu, MenuAction action, int param1, int p
         // Respawn sprite at new location
         RemoveMortarSprite(mortarIndex);
         SpawnMortarSprite(mortarIndex);
-        if (g_cvShowButtons.BoolValue)
-        {
-            SpawnButtonSprite(mortarIndex);
-        }
+        SpawnButtonSprite(mortarIndex);
         
         // Show menu again with updated coordinates
         ShowChangeLocMenu(client, mortarIndex);
@@ -690,39 +675,6 @@ public Action Command_ListMortars(int client, int args)
     }
     
     ReplyToCommand(client, "[MortarVis] Total: %d mortars", g_MortarCount);
-    
-    return Plugin_Handled;
-}
-
-public Action Command_FindButtons(int client, int args)
-{
-    int count = 0;
-    int ent = -1;
-    
-    ReplyToCommand(client, "[MortarVis] === func_button entities on %s ===", g_CurrentMap);
-    
-    while ((ent = FindEntityByClassname(ent, "func_button")) != -1)
-    {
-        char targetname[64];
-        if (GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname)) > 0)
-        {
-            float pos[3];
-            GetEntPropVector(ent, Prop_Send, "m_vecOrigin", pos);
-            
-            count++;
-            ReplyToCommand(client, "%d. '%s' at (%.1f, %.1f, %.1f)", 
-                count, targetname, pos[0], pos[1], pos[2]);
-        }
-    }
-    
-    if (count == 0)
-    {
-        ReplyToCommand(client, "[MortarVis] No named func_button entities found");
-    }
-    else
-    {
-        ReplyToCommand(client, "[MortarVis] Found %d named buttons", count);
-    }
     
     return Plugin_Handled;
 }
