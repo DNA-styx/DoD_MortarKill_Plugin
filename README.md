@@ -7,7 +7,10 @@ This plugin prints on screen for kills using a map-built mortar at the right mom
 
 # AVAILABLE MAPS:
 - dod_strand
-- dod_strand_night (only axis mortars)
+- dod_strand_night
+- dod_dday_h
+- dod_longestday_b5
+- dickmanns_deepriver_syp_final
 - dod_ardennes_rc1
 - dod_ardennes_rc1_dbs_b1
 - dod_helms_attack_v2
@@ -16,9 +19,6 @@ This plugin prints on screen for kills using a map-built mortar at the right mom
 - dod_ebensee_b4
 
 # TODO MAPS:
-- dod_dday_h
-- dod_longestday_b5
-- dickmanns_deepriver_syp_final
 - others?
 
 # Images:
