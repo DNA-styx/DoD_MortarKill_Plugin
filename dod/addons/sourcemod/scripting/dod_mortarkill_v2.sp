@@ -2,7 +2,7 @@
 #include <sdktools>
 #pragma semicolon 1
 
-#define PL_VERSION "2.0.1"
+#define PL_VERSION "2.0.2"
 #define MAX_MORTARS 32
 
 // Team definitions
@@ -43,7 +43,7 @@ new Handle:g_CvarDebug = INVALID_HANDLE;
 public Plugin:myinfo = 
 {
     name = "DoD:S MortarKill",
-    author = "BenSib, DNA.styx",
+    author = "BenSib, Claude.ai guided by DNA.styx",
     description = "Gives kill credits for map-built mortars (supports unlimited mortars)",
     version = PL_VERSION,
     url = ""
@@ -206,7 +206,11 @@ public bool:LoadMortarConfig()
 
     CloseHandle(hKeyValues);
     
-    LogMessage("[MortarKill] Loaded %d mortar(s) for map %s", g_MortarCount, g_CurrentMap);
+    if (GetConVarBool(g_CvarDebug))
+    {
+        LogMessage("[MortarKill] Loaded %d mortar(s) for map %s", g_MortarCount, g_CurrentMap);
+    }
+    
     return (g_MortarCount > 0);
 }
 
@@ -330,8 +334,8 @@ stock AwardMortarKill(attacker, victim, mortarIndex)
             Format(victimColored, sizeof(victimColored), "\x01%s", victimName);
     }
     
-    // Format: [DoD Mortar] (killer) killed (victim)
-    // Green for [DoD Mortar], team colors for player names
+    // Format: [Mortar] (killer) killed (victim)
+    // Green for [Mortar], team colors for player names
     PrintToChatAll("\x01\x04[Mortar]\x01 %s killed %s", attackerColored, victimColored);
 
     // Adjust frags (penalty for teamkill)
