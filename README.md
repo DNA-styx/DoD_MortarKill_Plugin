@@ -2,18 +2,14 @@
 This plugin prints on screen for kills using a map-built mortar at the right moment. Each mortar is configured one by one in the file "mortar.cfg".
 
 # INSTALLATION:
-
-Server with RCBot2
 - dod_mortarkill_v2.smx --> "dod/addons/sourcemod/plugins/"
-- dod_mortar.cfg --> "dod/cfg/sourcemod"
-
-Server without RCBot2
-- dod_mortarkill.smx --> "dod/addons/sourcemod/plugins/"
 - dod_mortar.cfg --> "dod/cfg/sourcemod"
 
 # Helper Programs
 To visualise the mortar kil zones run this plugin on a listen server
 - dod_mortarkill_vis2.smx --> "dod/addons/sourcemod/plugins/"
+
+While you can adjust the mortar detection sphere using the visualiser, it can't be saved due to the .cfg file being outside of the sourcemod folder. So manually edit mortar.cfg and reload to verify.
 
 # AVAILABLE MAPS:
 - dod_strand
@@ -34,6 +30,11 @@ To visualise the mortar kil zones run this plugin on a listen server
 # Images:
 <img width="500" height="281" alt="image" src="https://github.com/user-attachments/assets/22299f25-7a6a-4bfe-95ac-a4f03bd21040" />
 <img width="500" height="281" alt="image" src="https://github.com/user-attachments/assets/fc0ad596-496f-4416-bf96-3690b8b7f6ce" />
+
+Visualiser Helper
+![205A97~1](https://github.com/user-attachments/assets/670754b6-28b2-4195-b18d-485ee433e744)
+![2040B2~1](https://github.com/user-attachments/assets/1a01a3f5-a320-4669-bce8-d59d3e9192e1)
+
 
 # CONFIG SETUP
 
