@@ -2,7 +2,7 @@
 #include <sdktools>
 #pragma semicolon 1
 
-#define PL_VERSION "2.0.2"
+#define PL_VERSION "2.0.3"
 #define MAX_MORTARS 32
 
 // Team definitions
@@ -46,7 +46,7 @@ public Plugin:myinfo =
     author = "BenSib, Claude.ai guided by DNA.styx",
     description = "Gives kill credits for map-built mortars (supports unlimited mortars)",
     version = PL_VERSION,
-    url = ""
+    url = "https://github.com/DNA-styx/DoD_MortarKill_Plugin"
 };
 
 // ---------------------------
@@ -337,6 +337,9 @@ stock AwardMortarKill(attacker, victim, mortarIndex)
     // Format: [Mortar] (killer) killed (victim)
     // Green for [Mortar], team colors for player names
     PrintToChatAll("\x01\x04[Mortar]\x01 %s killed %s", attackerColored, victimColored);
+
+    // Log to game for HLStatsX tracking
+    LogToGame("\"%L\" killed \"%L\" with \"mortar\"", attacker, victim);
 
     // Adjust frags (penalty for teamkill)
     new diff = (GetClientTeam(attacker) == GetClientTeam(victim)) ? -1 : 1;
